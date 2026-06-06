@@ -1,6 +1,6 @@
 import os
-import requests
 from dotenv import load_dotenv
+from services.http_client import post_json
 
 load_dotenv()
 
@@ -12,6 +12,13 @@ HEADERS = {
 }
 
 def find_decision_makers(domain):
+    if not API_KEY:
+        print("Missing PROSPEO_API_KEY.")
+        return []
+
+    if not domain:
+        return []
+
     url = "https://api.prospeo.io/search-person"
 
     payload = {
@@ -32,27 +39,23 @@ def find_decision_makers(domain):
         }
     }
 
-    response = requests.post(
-        url,
-        json=payload,
-        headers=HEADERS
-    )
-
-    if response.status_code != 200:
+    data = post_json(url, HEADERS, payload, "Prospeo search")
+    if not data:
         return []
-
-    data = response.json()
 
     results = []
     
     for item in data.get("results", []):
-        person = item["person"]
+        person = item.get("person", {})
+        person_id = person.get("person_id")
+        if not person_id:
+            continue
 
         results.append({
-            "person_id": person["person_id"],
-            "name": person["full_name"],
-            "title": person["current_job_title"],
-            "linkedin": person["linkedin_url"]
+            "person_id": person_id,
+            "name": person.get("full_name") or "Unknown",
+            "title": person.get("current_job_title"),
+            "linkedin": person.get("linkedin_url")
         })
     
     return results
