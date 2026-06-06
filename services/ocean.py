@@ -1,6 +1,6 @@
 import os
-import requests
 from dotenv import load_dotenv
+from services.http_client import post_json
 
 load_dotenv()
 
@@ -13,6 +13,12 @@ HEADERS = {
 
 
 def search_companies(domain):
+    if not API_KEY:
+        print("Missing OCEAN_API_KEY.")
+        return []
+
+    url = "https://api.ocean.io/v3/search/companies"
+
     payload = {
         "size": 5,
         "companiesFilters": {
@@ -26,24 +32,22 @@ def search_companies(domain):
         ]
     }
 
-    response = requests.post(
-        "https://api.ocean.io/v3/search/companies",
-        headers=HEADERS,
-        json=payload
-    )
+    data = post_json(url, HEADERS, payload, "Ocean")
+    if not data:
+        return []
 
-    print(response.status_code)
-
-    data=response.json()
-    companies=[]
-    for item in data["companies"]:
-        company=item["company"]
+    companies = []
+    for item in data.get("companies", []):
+        company = item.get("company", {})
+        company_domain = company.get("domain")
+        if not company_domain:
+            continue
 
         companies.append({
-            "name":company.get("name"),
-            "domain":company.get("domain"),
-            "description":company.get("description"),
-            "employees":company.get("employeeCountOcean")
+            "name": company.get("name") or company_domain,
+            "domain": company_domain,
+            "description": company.get("description"),
+            "employees": company.get("employeeCountOcean")
         })
 
     return companies 
