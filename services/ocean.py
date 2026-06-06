@@ -34,8 +34,6 @@ def search_companies(domain):
 
     print(response.status_code)
 
-    return response.json()
-
     data=response.json()
     companies=[]
     for item in data["companies"]:
@@ -48,8 +46,4 @@ def search_companies(domain):
             "employees":company.get("employeeCountOcean")
         })
 
-        return companies 
-    companies=search_companies("openai.com")
-
-    for company in companies:
-        print(company)
+    return companies 
