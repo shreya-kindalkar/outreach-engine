@@ -21,6 +21,10 @@ def send_email(to_email, to_name, subject, content):
             "name": "Shreya",
             "email": "shreyakindalkar7@gmail.com"
         },
+        "replyTo": {
+            "email": "shreyakindalkar7@gmail.com",
+            "name": "Shreya"
+        },
         "to": [
             {
                 "email": to_email,
