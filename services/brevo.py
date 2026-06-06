@@ -1,10 +1,12 @@
 import os
-import requests
 from dotenv import load_dotenv
+from services.http_client import post
 
 load_dotenv()
 
 API_KEY = os.getenv("BREVO_API_KEY")
+SENDER_NAME = os.getenv("BREVO_SENDER_NAME", "Shreya")
+SENDER_EMAIL = os.getenv("BREVO_SENDER_EMAIL", "shreyakindalkar7@gmail.com")
 
 HEADERS = {
     "accept": "application/json",
@@ -14,16 +16,20 @@ HEADERS = {
 
 
 def send_email(to_email, to_name, subject, content):
+    if not API_KEY:
+        print("Missing BREVO_API_KEY.")
+        return False
+
     url = "https://api.brevo.com/v3/smtp/email"
 
     payload = {
         "sender": {
-            "name": "Shreya",
-            "email": "shreyakindalkar7@gmail.com"
+            "name": SENDER_NAME,
+            "email": SENDER_EMAIL
         },
         "replyTo": {
-            "email": "shreyakindalkar7@gmail.com",
-            "name": "Shreya"
+            "email": SENDER_EMAIL,
+            "name": SENDER_NAME
         },
         "to": [
             {
@@ -35,13 +41,12 @@ def send_email(to_email, to_name, subject, content):
         "htmlContent": content
     }
 
-    response = requests.post(
-        url,
-        json=payload,
-        headers=HEADERS
-    )
+    response = post(url, HEADERS, payload, "Brevo")
+    if not response:
+        return False
 
-    print(response.status_code)
-    print(response.text)
+    if response.status_code not in {200, 201, 202}:
+        print(f"Brevo send failed ({response.status_code}): {response.text}")
+        return False
 
-    return response
+    return True
