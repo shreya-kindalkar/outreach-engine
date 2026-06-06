@@ -1,16 +1,13 @@
+import argparse
+
 from services.ocean import search_companies
 from services.prospeo import find_decision_makers
-from services.prospeo_enrich import enrich_person
+from services.eazyreach import resolve_verified_email
 from services.brevo import send_email
 
 # =========================
-# CONFIG
+# EMAIL CONFIG
 # =========================
-
-SEED_DOMAIN = "openai.com"
-
-# Keep FALSE for demo/testing
-SEND_EMAILS = False
 
 EMAIL_SUBJECT = "Quick Introduction"
 
@@ -41,72 +38,126 @@ Shreya Kindalkar
 # PIPELINE
 # =========================
 
-print(f"\nStarting outreach pipeline for: {SEED_DOMAIN}\n")
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("domain", help="Seed company domain, for example openai.com")
+    parser.add_argument(
+        "--send",
+        action="store_true",
+        help="Send emails after the safety checkpoint",
+    )
+    return parser.parse_args()
 
-companies = search_companies(SEED_DOMAIN)
 
-for company in companies:
+def normalize_domain(domain):
+    return (
+        domain.strip()
+        .lower()
+        .removeprefix("https://")
+        .removeprefix("http://")
+        .removeprefix("www.")
+        .split("/")[0]
+    )
 
-    company_name = company.get("name")
-    company_domain = company.get("domain")
 
-    print("=" * 60)
-    print(f"Company: {company_name}")
-    print(f"Domain : {company_domain}")
-    print("=" * 60)
+def confirm_send(seed_domain):
+    confirm = input(
+        f"Send outreach emails to verified leads for {seed_domain}? Type SEND: "
+    )
+    if confirm != "SEND":
+        print("Aborted before sending emails.")
+        return False
+    return True
 
-    people = find_decision_makers(company_domain)
 
-    if not people:
-        print("No decision makers found.\n")
-        continue
+def run_pipeline(seed_domain, send_emails=False):
+    print(f"\nStarting outreach pipeline for: {seed_domain}\n")
 
-    leads_found = False
+    companies = search_companies(seed_domain)
+    if not companies:
+        print("No lookalike companies found or Ocean search failed.")
 
-    for person in people[:3]:
+    seen_emails = set()
 
-        lead = enrich_person(person["person_id"])
+    for company in companies:
+        company_name = company.get("name")
+        company_domain = company.get("domain")
 
-        if not lead:
+        print("=" * 60)
+        print(f"Company: {company_name}")
+        print(f"Domain : {company_domain}")
+        print("=" * 60)
+
+        people = find_decision_makers(company_domain)
+
+        if not people:
+            print("No decision makers found.\n")
             continue
 
-        email = lead.get("email")
+        leads_found = False
 
-        if not email:
-            continue
+        for person in people[:3]:
+            lead = resolve_verified_email(person)
 
-        leads_found = True
+            if not lead:
+                continue
 
-        print(
-            f"{lead['name']} | "
-            f"{lead['title']} | "
-            f"{lead['email']}"
-        )
+            email = lead.get("email")
 
-        if SEND_EMAILS:
+            if not email:
+                continue
 
-            email_body = EMAIL_TEMPLATE.format(
-                name=lead["name"],
-                company=company_name
-            )
+            normalized_email = email.lower()
+            if normalized_email in seen_emails:
+                print(f"Skipping duplicate lead: {email}")
+                continue
+            seen_emails.add(normalized_email)
 
-            send_email(
-                to_email=lead["email"],
-                to_name=lead["name"],
-                subject=EMAIL_SUBJECT,
-                content=email_body
-            )
+            leads_found = True
 
-            print("Email sent.\n")
+            lead_name = lead.get("name") or "there"
+            lead_title = lead.get("title") or "Unknown title"
 
-        else:
+            print(f"{lead_name} | {lead_title} | {email}")
 
-            print(
-                f"[DRY RUN] Would send email to "
-                f"{lead['email']}\n"
-            )
+            if send_emails:
+                email_body = EMAIL_TEMPLATE.format(
+                    name=lead_name,
+                    company=company_name or company_domain,
+                )
 
-    if not leads_found:
-        print("No verified emails found.\n")
+                sent = send_email(
+                    to_email=email,
+                    to_name=lead_name,
+                    subject=EMAIL_SUBJECT,
+                    content=email_body,
+                )
 
-print("\nPipeline completed.\n")
+                if sent:
+                    print("Email sent.\n")
+                else:
+                    print("Email failed.\n")
+
+            else:
+                print(f"[DRY RUN] Would send email to {email}\n")
+
+        if not leads_found:
+            print("No verified emails found.\n")
+
+    print("\nPipeline completed.\n")
+
+
+def main():
+    args = parse_args()
+    seed_domain = normalize_domain(args.domain)
+
+    if not seed_domain or "." not in seed_domain:
+        print("Please provide a valid company domain, for example openai.com.")
+        return
+
+    send_emails = args.send and confirm_send(seed_domain)
+    run_pipeline(seed_domain, send_emails=send_emails)
+
+
+if __name__ == "__main__":
+    main()
