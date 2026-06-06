@@ -18,3 +18,12 @@ for company in companies[:3]:
                 f"{lead['title']} | "
                 f"{lead['email']}"
             )
+
+from services.brevo import send_email
+
+send_email(
+    to_email="shreyakindalkar7@gmail.com",
+    to_name="Shreya",
+    subject="Brevo Test",
+    content="<h1>Hello from Outreach Engine!</h1>"
+)
