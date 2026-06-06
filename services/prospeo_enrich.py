@@ -1,6 +1,6 @@
 import os
-import requests
 from dotenv import load_dotenv
+from services.http_client import post_json
 
 load_dotenv()
 
@@ -13,6 +13,13 @@ HEADERS = {
 
 
 def enrich_person(person_id):
+    if not API_KEY:
+        print("Missing PROSPEO_API_KEY.")
+        return None
+
+    if not person_id:
+        return None
+
     url = "https://api.prospeo.io/enrich-person"
 
     payload = {
@@ -22,20 +29,15 @@ def enrich_person(person_id):
         }
     }
 
-    response = requests.post(
-        url,
-        json=payload,
-        headers=HEADERS
-    )
-
-    if response.status_code != 200:
+    data = post_json(url, HEADERS, payload, "Prospeo enrich")
+    if not data:
         return None
-
-    data = response.json()
 
     person = data.get("person", {})
 
     email_data = person.get("email", {})
+    if not isinstance(email_data, dict):
+        email_data = {}
 
     return {
         "person_id": person.get("person_id"),
