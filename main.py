@@ -9,25 +9,25 @@ from services.brevo import send_email
 # EMAIL CONFIG
 # =========================
 
-EMAIL_SUBJECT = "Quick question about {company}"
+EMAIL_SUBJECT = "Quick note for {company}"
 
 EMAIL_TEMPLATE = """
-<h2>Hi {name},</h2>
+<p>Hi {name},</p>
 
 <p>
-I recently came across <strong>{company}</strong> while exploring companies
-that are building interesting products in the technology and AI space.
+I found <strong>{company}</strong> while researching companies with strong
+signals around <strong>{company_domain}</strong>.
 </p>
 
 <p>
-As part of a project, I built an automated outreach engine that identifies
-relevant companies, discovers decision-makers, and generates personalized outreach.
-Your profile stood out during that process.
+Your role as <strong>{title}</strong> stood out because you seem close to the
+kind of growth, partnerships, or customer conversations this project focuses on.
 </p>
 
 <p>
-I'd love to connect and learn more about your work and your experience at
-{company}.
+I built a small outreach engine for an internship assignment and wanted this
+note to be relevant, not a generic blast. Would you be open to a brief
+connection?
 </p>
 
 <p>
@@ -122,20 +122,24 @@ def run_pipeline(seed_domain, send_emails=False):
             leads_found = True
 
             lead_name = lead.get("name") or "there"
-            lead_title = lead.get("title") or "Unknown title"
+            lead_title = lead.get("title") or "your role"
 
             print(f"{lead_name} | {lead_title} | {email}")
 
             if send_emails:
+                company_label = company_name or company_domain
+                email_subject = EMAIL_SUBJECT.format(company=company_label)
                 email_body = EMAIL_TEMPLATE.format(
                     name=lead_name,
-                    company=company_name or company_domain,
+                    title=lead_title,
+                    company=company_label,
+                    company_domain=company_domain or company_label,
                 )
 
                 sent = send_email(
                     to_email=email,
                     to_name=lead_name,
-                    subject=EMAIL_SUBJECT,
+                    subject=email_subject,
                     content=email_body,
                 )
 
