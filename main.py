@@ -64,9 +64,12 @@ def confirm_send(seed_domain):
     confirm = input(
         f"Send outreach emails to verified leads for {seed_domain}? Type SEND: "
     )
+
     if confirm != "SEND":
-        print("Aborted before sending emails.")
+        print("\nEmail sending cancelled.")
+        print("Running in DRY RUN mode.\n")
         return False
+
     return True
 
 

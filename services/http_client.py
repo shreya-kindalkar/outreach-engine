@@ -35,6 +35,17 @@ def post(url, headers, payload, service_name, retries=3, timeout=15):
                 continue
 
             if 400 <= response.status_code < 500:
+
+                try:
+                    error_data = response.json()
+                    error_code = error_data.get("error_code")
+
+                    if error_code in ("NO_RESULTS", "NO_MATCH"):
+                        return None
+
+                except ValueError:
+                    pass
+
                 print(
                     f"{service_name} request failed "
                     f"({response.status_code}): {response.text}"
