@@ -5,8 +5,8 @@ from services.http_client import post
 load_dotenv()
 
 API_KEY = os.getenv("BREVO_API_KEY")
-SENDER_NAME = os.getenv("BREVO_SENDER_NAME", "Shreya")
-SENDER_EMAIL = os.getenv("BREVO_SENDER_EMAIL", "shreyakindalkar7@gmail.com")
+SENDER_NAME = os.getenv("BREVO_SENDER_NAME")
+SENDER_EMAIL = os.getenv("BREVO_SENDER_EMAIL")
 
 HEADERS = {
     "accept": "application/json",
@@ -16,8 +16,18 @@ HEADERS = {
 
 
 def send_email(to_email, to_name, subject, content):
+    missing_vars = []
     if not API_KEY:
-        print("Missing BREVO_API_KEY.")
+        missing_vars.append("BREVO_API_KEY")
+    if not SENDER_NAME:
+        missing_vars.append("BREVO_SENDER_NAME")
+    if not SENDER_EMAIL:
+        missing_vars.append("BREVO_SENDER_EMAIL")
+
+    if missing_vars:
+        print("Missing Brevo configuration:")
+        for name in missing_vars:
+            print(f"- {name}")
         return False
 
     url = "https://api.brevo.com/v3/smtp/email"

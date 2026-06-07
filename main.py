@@ -1,4 +1,10 @@
 import argparse
+import os
+import re
+
+from dotenv import load_dotenv
+
+load_dotenv()
 
 from services.ocean import search_companies
 from services.prospeo import find_decision_makers
@@ -9,25 +15,26 @@ from services.brevo import send_email
 # EMAIL CONFIG
 # =========================
 
-EMAIL_SUBJECT = "Quick note for {company}"
+EMAIL_SUBJECT = "Quick question about {company}"
 
 EMAIL_TEMPLATE = """
 <p>Hi {name},</p>
 
 <p>
-I found <strong>{company}</strong> while researching companies with strong
-signals around <strong>{company_domain}</strong>.
+I came across <strong>{company}</strong> while researching companies similar to
+<strong>{company_domain}</strong>.
 </p>
 
 <p>
 Your role as <strong>{title}</strong> stood out because you seem close to the
-kind of growth, partnerships, or customer conversations this project focuses on.
+customer, growth, or partnership conversations this outreach project is meant
+to support.
 </p>
 
 <p>
-I built a small outreach engine for an internship assignment and wanted this
-note to be relevant, not a generic blast. Would you be open to a brief
-connection?
+I built a small outreach engine for an internship assignment and wanted to send
+a relevant note rather than a generic blast. Would you be open to a brief
+conversation?
 </p>
 
 <p>
@@ -74,6 +81,39 @@ def confirm_send(seed_domain):
         return False
 
     return True
+
+
+def validate_config(send_emails):
+    required_vars = ["OCEAN_API_KEY", "PROSPEO_API_KEY"]
+
+    if send_emails:
+        required_vars.extend([
+            "BREVO_API_KEY",
+            "BREVO_SENDER_NAME",
+            "BREVO_SENDER_EMAIL",
+        ])
+
+    missing_vars = [name for name in required_vars if not os.getenv(name)]
+
+    if missing_vars:
+        print("Missing required environment variables:")
+        for name in missing_vars:
+            print(f"- {name}")
+        print("\nCreate a .env file using .env.example as a template.")
+        return False
+
+    return True
+
+
+def render_email_preview(html_content, max_length=140):
+    text = re.sub(r"<br\s*/?>", " ", html_content, flags=re.IGNORECASE)
+    text = re.sub(r"<[^>]+>", " ", text)
+    text = " ".join(text.split())
+
+    if len(text) <= max_length:
+        return text
+
+    return text[: max_length - 3].rstrip() + "..."
 
 
 def run_pipeline(seed_domain, send_emails=False):
@@ -126,16 +166,16 @@ def run_pipeline(seed_domain, send_emails=False):
 
             print(f"{lead_name} | {lead_title} | {email}")
 
-            if send_emails:
-                company_label = company_name or company_domain
-                email_subject = EMAIL_SUBJECT.format(company=company_label)
-                email_body = EMAIL_TEMPLATE.format(
-                    name=lead_name,
-                    title=lead_title,
-                    company=company_label,
-                    company_domain=company_domain or company_label,
-                )
+            company_label = company_name or company_domain
+            email_subject = EMAIL_SUBJECT.format(company=company_label)
+            email_body = EMAIL_TEMPLATE.format(
+                name=lead_name,
+                title=lead_title,
+                company=company_label,
+                company_domain=company_domain or company_label,
+            )
 
+            if send_emails:
                 sent = send_email(
                     to_email=email,
                     to_name=lead_name,
@@ -149,7 +189,9 @@ def run_pipeline(seed_domain, send_emails=False):
                     print("Email failed.\n")
 
             else:
-                print(f"[DRY RUN] Would send email to {email}\n")
+                print(f"[DRY RUN] Would send email to {email}")
+                print(f"Subject: {email_subject}")
+                print(f"Preview: {render_email_preview(email_body)}\n")
 
         if not leads_found:
             print("No verified emails found.\n")
@@ -163,6 +205,9 @@ def main():
 
     if not seed_domain or "." not in seed_domain:
         print("Please provide a valid company domain, for example openai.com.")
+        return
+
+    if not validate_config(args.send):
         return
 
     send_emails = args.send and confirm_send(seed_domain)

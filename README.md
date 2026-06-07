@@ -62,6 +62,7 @@ outreach-engine/
 |   `-- http_client.py
 |-- requirements.txt
 |-- README.md
+|-- .env.example
 `-- .env
 ```
 
@@ -73,6 +74,7 @@ outreach-engine/
 - `services/brevo.py` sends outreach emails through Brevo.
 - `services/http_client.py` centralizes outbound HTTP behavior, including retries, timeouts, and rate-limit handling.
 - `requirements.txt` lists Python dependencies.
+- `.env.example` documents the required local environment variables.
 - `.env` stores local API credentials and sender configuration.
 
 ## API Integrations
@@ -108,14 +110,14 @@ pip install -r requirements.txt
 
 ### 2. Configure environment variables
 
-Create a `.env` file in the project root and provide the API credentials used by the services.
+Create a `.env` file in the project root using `.env.example` as a template.
 
 ```env
-OCEAN_API_KEY=your_ocean_api_key
-PROSPEO_API_KEY=your_prospeo_api_key
-BREVO_API_KEY=your_brevo_api_key
-BREVO_SENDER_EMAIL=your_verified_sender@example.com
-BREVO_SENDER_NAME=Outreach Engine
+OCEAN_API_KEY=
+PROSPEO_API_KEY=
+BREVO_API_KEY=
+BREVO_SENDER_NAME=
+BREVO_SENDER_EMAIL=
 ```
 
 The Brevo sender email should be a verified sender in your Brevo account.
@@ -157,29 +159,24 @@ When `--send` is provided, the application still requires an explicit `SEND` con
 ```text
 $ python main.py openai.com
 
-Outreach Engine
-Seed domain: openai.com
-Mode: dry run
+Starting outreach pipeline for: openai.com
 
-[Ocean] Finding lookalike companies...
-[Ocean] Found 5 companies
+============================================================
+Company: ExampleAI
+Domain : exampleai.com
+============================================================
+Jane Smith | VP Marketing | jane.smith@exampleai.com
+[DRY RUN] Would send email to jane.smith@exampleai.com
+Subject: Quick question about ExampleAI
+Preview: Hi Jane Smith, I came across ExampleAI while researching companies similar to exampleai.com. Your role as VP Marketing stood out...
 
-[Prospeo] Searching decision-makers...
-[Prospeo] Found 8 candidate contacts
+============================================================
+Company: ModelWorks
+Domain : modelworks.com
+============================================================
+No decision makers found.
 
-[Email Resolution] Enriching contacts...
-[Email Resolution] Resolved 4 verified work emails
-
-[Deduplication] Removed 1 duplicate lead
-
-[Dry Run] Emails were not sent.
-
-Prepared outreach:
-- Jane Smith, VP Marketing at ExampleAI, jane.smith@exampleai.com
-- Rahul Mehta, Head of Growth at ModelWorks, rahul.mehta@modelworks.com
-- Sarah Chen, Director of Partnerships at DataPilot, sarah.chen@datapilot.com
-
-Run with --send to enable delivery.
+Pipeline completed.
 ```
 
 ## Design Decisions
