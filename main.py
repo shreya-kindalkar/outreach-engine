@@ -9,22 +9,25 @@ from services.brevo import send_email
 # EMAIL CONFIG
 # =========================
 
-EMAIL_SUBJECT = "Quick Introduction"
+EMAIL_SUBJECT = "Quick question about {company}"
 
 EMAIL_TEMPLATE = """
-<h2>Hello {name},</h2>
+<h2>Hi {name},</h2>
 
 <p>
-I came across {company} and was impressed by what your team is building.
+I recently came across <strong>{company}</strong> while exploring companies
+that are building interesting products in the technology and AI space.
 </p>
 
 <p>
-I'm currently exploring AI-powered outreach and lead generation systems,
-and I'd love to connect and learn more about your work.
+As part of a project, I built an automated outreach engine that identifies
+relevant companies, discovers decision-makers, and generates personalized outreach.
+Your profile stood out during that process.
 </p>
 
 <p>
-Looking forward to hearing from you.
+I'd love to connect and learn more about your work and your experience at
+{company}.
 </p>
 
 <p>
